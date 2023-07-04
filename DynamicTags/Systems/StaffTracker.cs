@@ -14,19 +14,20 @@ using System.Threading.Tasks;
 using System.Net.Http;
 using RemoteAdmin;
 using CommandSystem;
+using PluginAPI.Events;
 
 namespace DynamicTags.Systems
 {
 	public class StaffTracker
 	{
 		[PluginEvent(ServerEventType.PlayerJoined)]
-		public void OnPlayerJoin(Player player)
+		public void OnPlayerJoin(PlayerJoinedEvent args)
 		{
 			var details = new PlayerDetails
 			{
-				UserId = player.UserId,
-				UserName = player.Nickname,
-				Address = player.IpAddress,
+				UserId = args.Player.UserId,
+				UserName = args.Player.Nickname,
+				Address = args.Player.IpAddress,
 				ServerAddress = Server.ServerIpAddress,
 				ServerPort = Server.Port.ToString()
 			};
@@ -35,41 +36,107 @@ namespace DynamicTags.Systems
 		}
 
 		[PluginEvent(ServerEventType.PlayerLeft)]
-		public void OnPlayerLeave(Player player)
-		{
-			var details = new PlayerDetails
-			{
-				UserId = player.UserId,
-				UserName = player.Nickname,
-				Address = player.IpAddress,
-				ServerAddress = Server.ServerIpAddress,
-				ServerPort = Server.Port.ToString()
-			};
+		public void OnPlayerLeave(PlayerLeftEvent args)
+        {
+            var details = new PlayerDetails
+            {
+                UserId = args.Player.UserId,
+                UserName = args.Player.Nickname,
+                Address = args.Player.IpAddress,
+                ServerAddress = Server.ServerIpAddress,
+                ServerPort = Server.Port.ToString()
+            };
 
-			Extensions.Post(Plugin.Config.ApiEndpoint + "scpsl/playerleave", new StringContent(JsonConvert.SerializeObject(details), Encoding.UTF8, "application/json"));
+            Extensions.Post(Plugin.Config.ApiEndpoint + "scpsl/playerleave", new StringContent(JsonConvert.SerializeObject(details), Encoding.UTF8, "application/json"));
 		}
 
+
 		[PluginEvent(ServerEventType.PlayerBanned)]
-		public void OnPlayerBanned(Player player, CommandSender commandSender, string reason, long duration)
+		public void OnPlayerBanned(PlayerBannedEvent args)
 		{
-			Console.WriteLine(commandSender is PlayerCommandSender);
-
-			if (!(commandSender is PlayerCommandSender pCS))
-				return;
-
-			var admin = Player.Get(pCS.PlayerId);
-
 			var details = new PlayerBanDetails
 			{
-				PlayerName = player.Nickname.Replace(':', ' '),
-				PlayerID = player.UserId,
-				AdminName = admin.Nickname.Replace(':', ' '),
-				AdminID = admin.UserId,
-				Duration = (duration / 60).ToString(),
-				Reason = string.IsNullOrEmpty(reason) ? "No reason provided" : reason
+				PlayerName = args.Player.Nickname.Replace(':', ' '),
+				PlayerID = args.Player.UserId,
+				PlayerAddress = args.Player.IpAddress,
+				AdminName = args.Issuer.Nickname.Replace(':', ' '),
+				AdminID = args.Issuer.UserId,
+				Duration = (args.Duration / 60).ToString(),
+				Reason = string.IsNullOrEmpty(args.Reason) ? "No reason provided" : args.Reason
 			};
 
 			Extensions.Post(Plugin.Config.ApiEndpoint + "scpsl/playerban", new StringContent(JsonConvert.SerializeObject(details), Encoding.UTF8, "application/json"));
+		}
+
+		[PluginEvent(ServerEventType.PlayerKicked)]
+		public void OnPlayerKicked(PlayerKickedEvent args)
+		{
+			PlayerBanDetails details;
+
+			if (args.Issuer is PlayerCommandSender pCS)
+			{
+				var admin = Player.Get(pCS.PlayerId);
+
+				details = new PlayerBanDetails
+				{
+					PlayerName = args.Player.Nickname.Replace(':', ' '),
+					PlayerID = args.Player.UserId,
+                    PlayerAddress = args.Player.IpAddress,
+                    AdminName = admin.Nickname.Replace(':', ' '),
+					AdminID = admin.UserId,
+					Duration = "0",
+					Reason = string.IsNullOrEmpty(args.Reason) ? "No reason provided" : args.Reason
+				};				
+			}
+			else
+			{
+				details = new PlayerBanDetails
+				{
+                    PlayerName = args.Player.Nickname.Replace(':', ' '),
+                    PlayerID = args.Player.UserId,
+                    PlayerAddress = args.Player.IpAddress,
+                    AdminName = "SERVER",
+					AdminID = "server",
+					Duration = "0",
+                    Reason = string.IsNullOrEmpty(args.Reason) ? "No reason provided" : args.Reason
+                };
+
+			}
+			Extensions.Post(Plugin.Config.ApiEndpoint + "scpsl/playerkick", new StringContent(JsonConvert.SerializeObject(details), Encoding.UTF8, "application/json"));
+		}
+
+		[PluginEvent(ServerEventType.PlayerMuted)]
+		public void PlayerMuteEvent(PlayerMutedEvent args)
+		{
+			var details = new PlayerBanDetails
+			{
+				PlayerName = args.Player.Nickname.Replace(':', ' '),
+				PlayerID = args.Player.UserId,
+                PlayerAddress = args.Player.IpAddress,
+                AdminName = args.Issuer.Nickname.Replace(':', ' '),
+				AdminID = args.Issuer.UserId,
+				Duration = args.IsIntercom.ToString(),
+				Reason = "No reason provided"
+			};
+
+			Extensions.Post(Plugin.Config.ApiEndpoint + "scpsl/playermute", new StringContent(JsonConvert.SerializeObject(details), Encoding.UTF8, "application/json"));
+		}
+
+		[PluginEvent(ServerEventType.PlayerUnmuted)]
+		public void PlayerUnmuteEvent(PlayerUnmutedEvent args)
+        {
+            var details = new PlayerBanDetails
+            {
+                PlayerName = args.Player.Nickname.Replace(':', ' '),
+                PlayerID = args.Player.UserId,
+                PlayerAddress = args.Player.IpAddress,
+                AdminName = args.Issuer.Nickname.Replace(':', ' '),
+                AdminID = args.Issuer.UserId,
+                Duration = args.IsIntercom.ToString(),
+                Reason = "No reason provided"
+            };
+
+            Extensions.Post(Plugin.Config.ApiEndpoint + "scpsl/playerunmute", new StringContent(JsonConvert.SerializeObject(details), Encoding.UTF8, "application/json"));
 		}
 	}
 }

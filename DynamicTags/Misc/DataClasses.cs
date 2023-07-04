@@ -33,6 +33,7 @@ namespace DynamicTags
 	{
 		public string PlayerName { get; set; }
 		public string PlayerID { get; set; }
+		public string PlayerAddress { get; set; }
 		public string AdminName { get; set; }
 		public string AdminID { get; set; }
 		public string Duration { get; set; }
@@ -44,6 +45,7 @@ namespace DynamicTags
 		public string PlayerName { get; set; }
 		public string PlayerID { get; set; }
 		public string PlayerRole { get; set; }
+		public string PlayerAddress { get; set; }
 
 		public string ReporterName { get; set; }
 		public string ReporterID { get; set; }
