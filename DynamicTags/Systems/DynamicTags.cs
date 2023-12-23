@@ -32,16 +32,15 @@ namespace DynamicTags.Systems
 			{
 				if (sender is PlayerCommandSender pSender)
 				{
-					if (Tags.ContainsKey(pSender.ReferenceHub.characterClassManager.UserId))
+					if (Tags.ContainsKey(pSender.ReferenceHub.authManager.UserId))
 					{
-						TagData data = Tags[pSender.ReferenceHub.characterClassManager.UserId];
+						TagData data = Tags[pSender.ReferenceHub.authManager.UserId];
 
 						//This is to stop situations where users have locally assigned perms but gets overridden by NULL perms from the external server.
 						if (!string.IsNullOrEmpty(data.Group))
 						{
 							pSender.ReferenceHub.serverRoles.SetGroup(ServerStatic.GetPermissionsHandler().GetGroup(data.Group), true);
 							pSender.ReferenceHub.serverRoles.RemoteAdmin = true;
-							pSender.ReferenceHub.serverRoles.RemoteAdminMode = ServerRoles.AccessMode.LocalAccess;
 
 							if (data.Perms != 0)
 								pSender.ReferenceHub.serverRoles.Permissions = data.Perms;
